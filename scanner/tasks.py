@@ -240,7 +240,7 @@ def _generate_recommendations(scan: Scan, fuzzy_output: dict) -> None:
                 severity=sev,
                 category=rec_template["category"],
                 remediation=rec_template["remediation"],
-                ref_links=rec_template["references"],
+                ref_links=rec_template["ref_links"],
                 triggered_by_rule=factor,
             )
 

@@ -65,15 +65,18 @@ WSGI_APPLICATION = 'fuzzi_backend.wsgi.application'
 # Database — smart config: DATABASE_URL > individual vars > SQLite fallback
 # ---------------------------------------------------------------------------
 def _build_db_config():
+    import urllib.parse as _up
+    # Try pooler URL first (Vercel), then direct URL (local dev fallback)
     db_url = os.getenv('DATABASE_URL', '')
+    if not db_url or 'YOUR_SUPABASE' in db_url:
+        db_url = os.getenv('DATABASE_URL_DIRECT', '')
     if db_url and 'YOUR_SUPABASE' not in db_url:
-        import urllib.parse as _up
         p = _up.urlparse(db_url)
         return {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': p.path.lstrip('/'),
-            'USER': p.username or '',
-            'PASSWORD': p.password or '',
+            'USER': _up.unquote(p.username or ''),
+            'PASSWORD': _up.unquote(p.password or ''),
             'HOST': p.hostname or '',
             'PORT': str(p.port or 5432),
             'OPTIONS': {'sslmode': 'require'},
