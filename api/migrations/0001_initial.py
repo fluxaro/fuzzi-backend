@@ -1,0 +1,143 @@
+import uuid
+import django.db.models.deletion
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+    initial = True
+    dependencies = []
+
+    operations = [
+        migrations.CreateModel(
+            name="UserProfile",
+            fields=[
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)),
+                ("supabase_uid", models.CharField(db_index=True, max_length=255, unique=True)),
+                ("email", models.EmailField(unique=True)),
+                ("full_name", models.CharField(blank=True, max_length=255)),
+                ("role", models.CharField(choices=[("admin","Admin"),("analyst","Analyst"),("viewer","Viewer")], default="analyst", max_length=20)),
+                ("organization", models.CharField(blank=True, max_length=255)),
+                ("avatar_url", models.URLField(blank=True)),
+                ("is_active", models.BooleanField(default=True)),
+                ("total_scans", models.IntegerField(default=0)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("last_login", models.DateTimeField(blank=True, null=True)),
+            ],
+            options={"db_table": "user_profiles", "ordering": ["-created_at"]},
+        ),
+        migrations.CreateModel(
+            name="UserPreferences",
+            fields=[
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)),
+                ("user", models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name="preferences", to="api.userprofile")),
+                ("theme", models.CharField(choices=[("light","Light"),("dark","Dark"),("system","System")], default="system", max_length=10)),
+                ("email_alerts", models.BooleanField(default=True)),
+                ("alert_on_high_risk", models.BooleanField(default=True)),
+                ("alert_on_critical", models.BooleanField(default=True)),
+                ("default_scan_depth", models.CharField(default="standard", max_length=20)),
+                ("dashboard_layout", models.JSONField(blank=True, default=dict)),
+                ("notifications_enabled", models.BooleanField(default=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+            ],
+            options={"db_table": "user_preferences"},
+        ),
+        migrations.CreateModel(
+            name="Scan",
+            fields=[
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)),
+                ("user_id", models.CharField(db_index=True, max_length=255)),
+                ("target_url", models.URLField(max_length=2048)),
+                ("title", models.CharField(blank=True, max_length=255)),
+                ("status", models.CharField(choices=[("pending","Pending"),("running","Running"),("completed","Completed"),("failed","Failed")], default="pending", max_length=20)),
+                ("scan_options", models.JSONField(blank=True, default=dict)),
+                ("raw_results", models.JSONField(blank=True, default=dict)),
+                ("html_content", models.TextField(blank=True)),
+                ("error_message", models.TextField(blank=True)),
+                ("is_bookmarked", models.BooleanField(default=False)),
+                ("started_at", models.DateTimeField(blank=True, null=True)),
+                ("completed_at", models.DateTimeField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+            ],
+            options={"db_table": "scans", "ordering": ["-created_at"]},
+        ),
+        migrations.CreateModel(
+            name="FuzzyResult",
+            fields=[
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)),
+                ("scan", models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name="fuzzy_result", to="api.scan")),
+                ("risk_score", models.FloatField()),
+                ("risk_level", models.CharField(choices=[("LOW","Low"),("MEDIUM","Medium"),("HIGH","High"),("CRITICAL","Critical")], max_length=10)),
+                ("overall_score", models.FloatField(default=50.0)),
+                ("confidence", models.FloatField(default=0.0)),
+                ("category_scores", models.JSONField(default=dict)),
+                ("triggered_rules", models.JSONField(default=list)),
+                ("fuzzy_inputs", models.JSONField(default=dict)),
+                ("fuzzy_memberships", models.JSONField(default=dict)),
+                ("aggregate_output", models.JSONField(default=dict)),
+                ("explainability", models.TextField(blank=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+            ],
+            options={"db_table": "fuzzy_results"},
+        ),
+        migrations.CreateModel(
+            name="Factor",
+            fields=[
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)),
+                ("scan", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="factors", to="api.scan")),
+                ("name", models.CharField(max_length=100)),
+                ("category", models.CharField(max_length=100)),
+                ("raw_value", models.FloatField()),
+                ("score_100", models.FloatField(default=50.0)),
+                ("linguistic_value", models.CharField(max_length=20)),
+                ("details", models.JSONField(default=dict)),
+                ("weight", models.FloatField(default=1.0)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+            ],
+            options={"db_table": "factors", "ordering": ["category", "name"]},
+        ),
+        migrations.CreateModel(
+            name="Recommendation",
+            fields=[
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)),
+                ("scan", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="recommendations", to="api.scan")),
+                ("title", models.CharField(max_length=255)),
+                ("description", models.TextField()),
+                ("severity", models.CharField(choices=[("info","Info"),("low","Low"),("medium","Medium"),("high","High"),("critical","Critical")], max_length=10)),
+                ("category", models.CharField(max_length=100)),
+                ("remediation", models.TextField()),
+                ("ref_links", models.JSONField(default=list, db_column="ref_links")),
+                ("triggered_by_rule", models.CharField(blank=True, max_length=255)),
+                ("is_resolved", models.BooleanField(default=False)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+            ],
+            options={"db_table": "recommendations", "ordering": ["-severity", "category"]},
+        ),
+        migrations.CreateModel(
+            name="Report",
+            fields=[
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)),
+                ("scan", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="reports", to="api.scan")),
+                ("format", models.CharField(choices=[("pdf","PDF"),("csv","CSV")], default="pdf", max_length=5)),
+                ("storage_path", models.CharField(max_length=512)),
+                ("file_size", models.IntegerField(default=0)),
+                ("generated_at", models.DateTimeField(auto_now_add=True)),
+                ("download_count", models.IntegerField(default=0)),
+            ],
+            options={"db_table": "reports", "unique_together": {("scan", "format")}},
+        ),
+        migrations.CreateModel(
+            name="ScanComparison",
+            fields=[
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)),
+                ("user_id", models.CharField(db_index=True, max_length=255)),
+                ("scan_a", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="comparisons_as_a", to="api.scan")),
+                ("scan_b", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="comparisons_as_b", to="api.scan")),
+                ("comparison_data", models.JSONField(default=dict)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+            ],
+            options={"db_table": "scan_comparisons", "ordering": ["-created_at"]},
+        ),
+    ]
