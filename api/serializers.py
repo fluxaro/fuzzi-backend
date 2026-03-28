@@ -4,6 +4,7 @@ from rest_framework import serializers
 from .models import (
     Scan, FuzzyResult, Factor, Recommendation, Report,
     UserProfile, UserPreferences, ScanComparison,
+    FuzzyRule, ConfigUpload, AuditLog, Webhook,
 )
 
 
@@ -13,7 +14,7 @@ class UserPreferencesSerializer(serializers.ModelSerializer):
         fields = [
             "id", "theme", "email_alerts", "alert_on_high_risk",
             "alert_on_critical", "default_scan_depth", "dashboard_layout",
-            "notifications_enabled", "updated_at",
+            "notifications_enabled", "webhook_url", "updated_at",
         ]
         read_only_fields = ["id"]
 
@@ -26,7 +27,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = [
             "id", "supabase_uid", "email", "full_name", "role",
             "organization", "avatar_url", "is_active", "total_scans",
-            "created_at", "last_login", "preferences",
+            "alert_threshold", "created_at", "last_login", "preferences",
         ]
         read_only_fields = ["id", "supabase_uid", "created_at", "total_scans"]
 
@@ -113,6 +114,7 @@ class ScanDetailSerializer(serializers.ModelSerializer):
 class ScanCreateSerializer(serializers.Serializer):
     url = serializers.URLField()
     title = serializers.CharField(required=False, allow_blank=True, default="")
+    environment = serializers.ChoiceField(choices=["production", "staging", "development"], required=False, default="production")
     options = serializers.DictField(required=False, default=dict)
 
 
@@ -198,3 +200,43 @@ def build_csv_report(scan, fuzzy_result, factors, recommendations) -> bytes:
         writer.writerow([r.severity.upper(), r.category, r.title, r.remediation])
 
     return output.getvalue().encode("utf-8")
+
+
+class FuzzyRuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FuzzyRule
+        fields = [
+            "id", "rule_id", "description", "antecedents", "consequent",
+            "weight", "is_active", "source", "created_by", "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "source", "created_by", "created_at", "updated_at"]
+
+
+class ConfigUploadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConfigUpload
+        fields = [
+            "id", "filename", "format", "parsed_config", "status",
+            "error_message", "scan_id", "created_at",
+        ]
+        read_only_fields = ["id", "status", "error_message", "created_at"]
+
+
+class AuditLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AuditLog
+        fields = [
+            "id", "user_id", "user_email", "action", "resource_type",
+            "resource_id", "details", "ip_address", "created_at",
+        ]
+
+
+class WebhookSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Webhook
+        fields = [
+            "id", "name", "url", "events", "secret", "is_active",
+            "last_triggered_at", "failure_count", "created_at",
+        ]
+        read_only_fields = ["id", "last_triggered_at", "failure_count", "created_at"]
+        extra_kwargs = {"secret": {"write_only": True}}

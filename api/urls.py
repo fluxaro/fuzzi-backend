@@ -10,8 +10,15 @@ urlpatterns = [
 
     # Profile & Preferences
     path("me", views.MeView.as_view(), name="me"),
-    path("profile", views.MeView.as_view(), name="profile"),          # PUT /profile alias
+    path("profile", views.MeView.as_view(), name="profile"),
     path("preferences", views.PreferencesView.as_view(), name="preferences"),
+
+    # Config Upload & Parsing
+    path("config/upload", views.ConfigUploadView.as_view(), name="config-upload"),
+
+    # Fuzzy Rule Management
+    path("rules", views.FuzzyRuleListView.as_view(), name="rule-list"),
+    path("rules/<uuid:rule_id>", views.FuzzyRuleDetailView.as_view(), name="rule-detail"),
 
     # Scans
     path("scan", views.ScanCreateView.as_view(), name="scan-create"),
@@ -32,9 +39,16 @@ urlpatterns = [
     # Comparison
     path("compare", views.ScanCompareView.as_view(), name="scan-compare"),
 
-    # Reports (PDF + CSV)
+    # Reports (PDF + CSV + JSON)
     path("reports/<uuid:scan_id>", views.ReportGenerateView.as_view(), name="report-generate"),
     path("report/<uuid:scan_id>/download", views.ReportRetrieveView.as_view(), name="report-retrieve"),
+
+    # Webhooks
+    path("webhooks", views.WebhookListView.as_view(), name="webhook-list"),
+    path("webhooks/<uuid:webhook_id>", views.WebhookDetailView.as_view(), name="webhook-detail"),
+
+    # Audit Log
+    path("audit", views.AuditLogView.as_view(), name="audit-log"),
 
     # Admin
     path("admin/users", views.AdminUsersView.as_view(), name="admin-users"),

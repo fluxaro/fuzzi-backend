@@ -86,13 +86,13 @@ def test_health():
     else:
         f("Server health", f"Expected 401, got {code}: {body}")
 
-    # Root 404 is expected
+    # Root health check
     try:
         r = requests.get("https://fuzzi-backend.vercel.app/", timeout=10)
-        if r.status_code == 404:
-            p("Root / returns 404 (expected — no root route)")
+        if r.status_code == 200 and "fuzzi" in r.text.lower():
+            p("Root / health check returns 200", r.json())
         else:
-            f("Root /", f"Expected 404, got {r.status_code}")
+            f("Root /", f"Expected 200 health response, got {r.status_code}: {r.text[:100]}")
     except Exception as e:
         f("Root /", str(e))
 
