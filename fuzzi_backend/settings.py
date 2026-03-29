@@ -66,20 +66,29 @@ WSGI_APPLICATION = 'fuzzi_backend.wsgi.application'
 # ---------------------------------------------------------------------------
 def _build_db_config():
     import urllib.parse as _up
-    # Try pooler URL first (Vercel), then direct URL (local dev fallback)
+
     db_url = os.getenv('DATABASE_URL', '')
     if not db_url or 'YOUR_SUPABASE' in db_url:
         db_url = os.getenv('DATABASE_URL_DIRECT', '')
     if db_url and 'YOUR_SUPABASE' not in db_url:
         p = _up.urlparse(db_url)
+        user = _up.unquote(p.username or '')
+        password = _up.unquote(p.password or '')
+        host = p.hostname or ''
+        port = str(p.port or 5432)
+        name = p.path.lstrip('/')
         return {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': p.path.lstrip('/'),
-            'USER': _up.unquote(p.username or ''),
-            'PASSWORD': _up.unquote(p.password or ''),
-            'HOST': p.hostname or '',
-            'PORT': str(p.port or 5432),
-            'OPTIONS': {'sslmode': 'require'},
+            'NAME': name,
+            'USER': user,
+            'PASSWORD': password,
+            'HOST': host,
+            'PORT': port,
+            'OPTIONS': {
+                'sslmode': 'require',
+                'connect_timeout': 10,
+                'options': '-c statement_timeout=30000',
+            },
         }
     password = os.getenv('DB_PASSWORD', '')
     if not password or 'YOUR_SUPABASE' in password:
