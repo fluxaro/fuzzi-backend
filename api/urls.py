@@ -41,7 +41,7 @@ urlpatterns = [
 
     # Reports (PDF + CSV + JSON)
     path("reports/<uuid:scan_id>", views.ReportGenerateView.as_view(), name="report-generate"),
-    path("report/<uuid:scan_id>/download", views.ReportRetrieveView.as_view(), name="report-retrieve"),
+    path("reports/<uuid:scan_id>/download", views.ReportRetrieveView.as_view(), name="report-retrieve"),
 
     # Webhooks
     path("webhooks", views.WebhookListView.as_view(), name="webhook-list"),

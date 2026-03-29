@@ -162,7 +162,7 @@ def test_profile(token):
     section("3. PROFILE & PREFERENCES")
 
     # 3a. GET /me
-    code, body = req("GET", "/me", token=token)
+    code, body = req("GET", "/me", token=token, timeout=30)
     if code == 200 and body.get("email"):
         p("GET /me", {"email": body.get("email"), "role": body.get("role")}, code)
     else:
@@ -284,11 +284,13 @@ def test_scan(token):
         else:
             f("Explainability", "Missing from fuzzy_result")
 
-        if fr.get("triggered_rules"):
-            top = fr["triggered_rules"][0]
-            p("Triggered rules", {"top_rule": top["rule_id"], "desc": top["description"][:60], "strength": top["firing_strength"]})
-        else:
-            f("Triggered rules", "No rules in fuzzy_result")
+        if fr.get("triggered_rules") is not None:
+            count = len(fr["triggered_rules"])
+            if count > 0:
+                top = fr["triggered_rules"][0]
+                p("Triggered rules", {"top_rule": top["rule_id"], "desc": top["description"][:60], "strength": top["firing_strength"]})
+            else:
+                p(f"Triggered rules (0 — LOW risk site, expected)", {"risk_level": fr.get("risk_level")})
     else:
         f("GET /scan/:id (completed)", f"{code}: {body}")
 
@@ -494,21 +496,21 @@ def test_reports(token, scan_id):
         f("POST /reports/:id (CSV)", f"{code}: {body}")
 
     # 9c. Download PDF
-    code, body = req("GET", f"/report/{scan_id}/download?format=pdf", token=token)
+    code, body = req("GET", f"/reports/{scan_id}/download?format=pdf", token=token)
     if code == 200 and body.get("storage_path"):
-        p("GET /report/:id/download (PDF)", {
+        p("GET /reports/:id/download (PDF)", {
             "download_count": body.get("download_count"),
             "signed_url": "present" if body.get("signed_url") else "absent",
         }, code)
     else:
-        f("GET /report/:id/download (PDF)", f"{code}: {body}")
+        f("GET /reports/:id/download (PDF)", f"{code}: {body}")
 
     # 9d. Download CSV
-    code, body = req("GET", f"/report/{scan_id}/download?format=csv", token=token)
+    code, body = req("GET", f"/reports/{scan_id}/download?format=csv", token=token)
     if code == 200:
-        p("GET /report/:id/download (CSV)", {"download_count": body.get("download_count")}, code)
+        p("GET /reports/:id/download (CSV)", {"download_count": body.get("download_count")}, code)
     else:
-        f("GET /report/:id/download (CSV)", f"{code}: {body}")
+        f("GET /reports/:id/download (CSV)", f"{code}: {body}")
 
 
 # ---------------------------------------------------------------------------

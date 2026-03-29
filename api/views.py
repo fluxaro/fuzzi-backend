@@ -189,11 +189,23 @@ class PasswordChangeView(APIView):
         if len(new_password) < 8:
             return Response({"error": "Password must be at least 8 characters"}, status=400)
         try:
-            get_service_client().auth.admin.update_user_by_id(request.user.id, {"password": new_password})
+            # Use the user's own access token to change their password
+            from supabase import create_client
+            user_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
+            user_client.auth.set_session(request.auth, "")
+            user_client.auth.update_user({"password": new_password})
             _audit(request, "auth.password_change")
             return Response({"message": "Password updated successfully"})
-        except Exception as exc:
-            return Response({"error": str(exc)}, status=400)
+        except Exception:
+            # Fallback: admin update
+            try:
+                get_service_client().auth.admin.update_user_by_id(
+                    request.user.id, {"password": new_password}
+                )
+                _audit(request, "auth.password_change")
+                return Response({"message": "Password updated successfully"})
+            except Exception as exc:
+                return Response({"error": str(exc)}, status=400)
 
 
 # ---------------------------------------------------------------------------
@@ -863,9 +875,10 @@ class ReportRetrieveView(APIView):
         fmt = request.query_params.get("format", "pdf").lower()
         try:
             scan = Scan.objects.get(id=scan_id, user_id=request.user.id)
-            report = scan.reports.get(format=fmt)
         except Scan.DoesNotExist:
             return Response({"error": "Scan not found"}, status=404)
+        try:
+            report = Report.objects.get(scan=scan, format=fmt)
         except Report.DoesNotExist:
             return Response({"error": f"No {fmt.upper()} report. POST to /api/reports/{scan_id} first."}, status=404)
         report.download_count += 1

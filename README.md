@@ -462,7 +462,7 @@ Generate a report for a completed scan.
 }
 ```
 
-#### `GET /api/report/<scan_id>/download?format=pdf`
+#### `GET /api/reports/<scan_id>/download?format=pdf`
 Retrieve a previously generated report with a signed download URL.
 
 ---

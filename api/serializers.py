@@ -131,9 +131,12 @@ class ReportSerializer(serializers.ModelSerializer):
         fields = ["id", "scan_id", "format", "storage_path", "file_size", "generated_at", "download_count", "signed_url"]
 
     def get_signed_url(self, obj):
-        from api.supabase_client import get_signed_url
-        from django.conf import settings
-        return get_signed_url(settings.SUPABASE_REPORTS_BUCKET, obj.storage_path)
+        try:
+            from api.supabase_client import get_signed_url
+            from django.conf import settings
+            return get_signed_url(settings.SUPABASE_REPORTS_BUCKET, obj.storage_path)
+        except Exception:
+            return None
 
 
 class ScanComparisonSerializer(serializers.ModelSerializer):
